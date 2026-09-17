@@ -6,4 +6,6 @@ import java.util.UUID
 
 interface UserAnswerRepository : JpaRepository<UserAnswer, UUID> {
     fun findByUserIdAndQuestionId(userId: UUID, questionId: UUID): UserAnswer?
+    fun countByUserIdAndIsCorrect(userId: UUID, isCorrect: Boolean): Int
+    fun countByUserId(userId: UUID): Int
 }

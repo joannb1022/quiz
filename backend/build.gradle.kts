@@ -33,6 +33,7 @@ dependencies {
     implementation("org.apache.pdfbox:pdfbox:3.0.3")
     implementation("org.apache.pdfbox:pdfbox:2.0.30")
     runtimeOnly("org.postgresql:postgresql")
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("org.springframework.security:spring-security-test")
 }
@@ -44,6 +45,6 @@ tasks.withType<KotlinCompile> {
     }
 }
 
-tasks.withType<Test> {
+tasks.withType<Test>().configureEach {
     useJUnitPlatform()
 }

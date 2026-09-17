@@ -2,8 +2,8 @@ package org.example.quiz.config
 
 import org.example.quiz.entity.User
 import org.example.quiz.repository.UserRepository
-import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
+import org.example.quiz.entity.Role
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.context.annotation.Bean
@@ -11,8 +11,12 @@ import org.springframework.context.annotation.Configuration
 import org.springframework.http.HttpStatus
 import org.springframework.security.config.annotation.web.builders.HttpSecurity
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity
-import org.springframework.security.core.Authentication
-import org.springframework.security.oauth2.core.user.OAuth2User
+import org.springframework.security.core.authority.SimpleGrantedAuthority
+import org.springframework.security.oauth2.client.oidc.userinfo.OidcUserRequest
+import org.springframework.security.oauth2.client.oidc.userinfo.OidcUserService
+import org.springframework.security.oauth2.client.userinfo.OAuth2UserService
+import org.springframework.security.oauth2.core.oidc.user.DefaultOidcUser
+import org.springframework.security.oauth2.core.oidc.user.OidcUser
 import org.springframework.security.web.SecurityFilterChain
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler
 import org.springframework.security.web.authentication.HttpStatusEntryPoint
@@ -35,6 +39,8 @@ class SecurityConfig(
             .csrf { it.disable() }
             .authorizeHttpRequests { auth ->
                 auth
+                    .requestMatchers("/oauth2/**", "/login/**", "/error").permitAll()
+                    .requestMatchers("/api/admin/**").hasRole("ADMIN") // adds ROLE_
                     .requestMatchers("/api/user/me").authenticated()
                     .requestMatchers("/api/**").authenticated()
                     .anyRequest().permitAll()
@@ -43,7 +49,11 @@ class SecurityConfig(
                 ex.authenticationEntryPoint(HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED))
             }
             .oauth2Login { oauth2 ->
-                oauth2.successHandler(oauthSuccessHandler())
+                oauth2
+                    .userInfoEndpoint { userInfo ->
+                        userInfo.oidcUserService(customOidcUserService())
+                    }
+                    .successHandler(oauthSuccessHandler())
             }
             .logout { logout ->
                 logout
@@ -55,20 +65,32 @@ class SecurityConfig(
         return http.build()
     }
 
-    private fun oauthSuccessHandler() = object : AuthenticationSuccessHandler {
-        override fun onAuthenticationSuccess(
-            request: HttpServletRequest,
-            response: HttpServletResponse,
-            authentication: Authentication,
-        ) {
-            val oauth2User = authentication.principal as OAuth2User
-            val googleId = oauth2User.getAttribute<String>("sub")!!
-            val email = oauth2User.getAttribute<String>("email")!!
+    private fun oauthSuccessHandler() = AuthenticationSuccessHandler { _, response, authentication ->
+        response.sendRedirect(frontendUrl)
+    }
 
-            userRepository.findByGoogleId(googleId)
-                ?: userRepository.save(User(googleId = googleId, email = email))
+    @Bean
+    fun customOidcUserService(): OAuth2UserService<OidcUserRequest, OidcUser> {
+        val delegate = OidcUserService()
 
-            response.sendRedirect(frontendUrl)
+        return OAuth2UserService { userRequest ->
+            val oidcUser = delegate.loadUser(userRequest)
+
+            val email = oidcUser.email ?: throw IllegalStateException("Email missing")
+            val user = userRepository.findByEmail(email)
+                ?: userRepository.save(
+                    User(
+                        googleId = oidcUser.subject,
+                        email = email,
+                        roles = mutableSetOf(Role.USER)
+                    )
+                )
+
+            val authorities = user.roles.map {
+                SimpleGrantedAuthority("ROLE_${it.name}")
+            }.toSet()
+
+            DefaultOidcUser(authorities, oidcUser.idToken, oidcUser.userInfo)
         }
     }
 
@@ -76,6 +98,7 @@ class SecurityConfig(
     fun corsConfigurationSource(): CorsConfigurationSource {
         val config = CorsConfiguration()
         config.allowedOrigins = listOf(frontendUrl)
+        config.allowedOriginPatterns = listOf("*")
         config.allowedMethods = listOf("GET", "POST", "PUT", "DELETE", "OPTIONS")
         config.allowedHeaders = listOf("*")
         config.allowCredentials = true

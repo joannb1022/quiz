@@ -6,4 +6,5 @@ import java.util.UUID
 
 interface QuizRepository : JpaRepository<Quiz, UUID> {
     fun findByUserIdOrderByCreatedAtDesc(userId: UUID): List<Quiz>
+    fun countByUserId(userId: UUID): Int
 }

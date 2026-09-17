@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.RestController
 import org.springframework.security.core.annotation.AuthenticationPrincipal
 
 @RestController
-@RequestMapping("/api/user")
+@RequestMapping("/api/v1/user")
 class UserController(private val currentUserResolver: CurrentUserResolver) {
 
     @GetMapping("/me")

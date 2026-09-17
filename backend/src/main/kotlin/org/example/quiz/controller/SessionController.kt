@@ -10,7 +10,7 @@ import org.springframework.web.bind.annotation.*
 import java.util.UUID
 
 @RestController
-@RequestMapping("/api/questions")
+@RequestMapping("/api/v1/questions")
 class SessionController(
     private val sessionService: SessionService,
     private val currentUserResolver: CurrentUserResolver,
@@ -32,7 +32,6 @@ class SessionController(
         @PathVariable id: UUID,
     ) {
         val user = currentUserResolver.resolve(principal)
-        // delegated to ReviewService via SessionController for convenience
         sessionService.addToReview(user, id)
     }
 }

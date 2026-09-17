@@ -3,6 +3,7 @@ package org.example.quiz.dto
 import org.example.quiz.entity.Question
 import org.example.quiz.entity.QuestionType
 import org.example.quiz.entity.Quiz
+import org.example.quiz.entity.Role
 import org.example.quiz.entity.User
 import java.time.Instant
 import java.util.UUID
@@ -75,4 +76,12 @@ data class ReviewQuestionDto(
 
 data class DeleteQuizCheckResponse(
     val hasReviewItems: Boolean,
+)
+
+data class UsersSummaryDto(
+    val userId: UUID,
+    val email: String,
+    val roles: MutableSet<Role>,
+    val quizCount: Int,
+    val averageScore: Double,
 )

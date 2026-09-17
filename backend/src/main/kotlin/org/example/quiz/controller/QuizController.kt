@@ -15,7 +15,7 @@ import org.springframework.web.multipart.MultipartFile
 import java.util.UUID
 
 @RestController
-@RequestMapping("/api/quizzes")
+@RequestMapping("/api/v1/quizzes")
 class QuizController(
     private val quizService: QuizService,
     private val quizRepository: QuizRepository,

@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.RestController
 import java.util.UUID
 
 @RestController
-@RequestMapping("/api/review")
+@RequestMapping("/api/v1/review")
 class ReviewController(
     private val reviewService: ReviewService,
     private val currentUserResolver: CurrentUserResolver,
